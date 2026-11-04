@@ -1,156 +1,277 @@
-import React,{useState} from 'react'
+import { useState } from 'react';
+import { FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaClock, FaCheckCircle } from 'react-icons/fa';
 
 const Contact = () => {
-  const [formData,setFormData]=useState({
-    name: "",
-    email: "",
-    phone: "",
-    message:"",
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
   });
 
-  const handleChange=(e)=> {
-    setFormData({
-      ...formData,
+  const [status, setStatus] = useState({
+    submitting: false,
+    success: false,
+    error: '',
+  });
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
+    if (status.error) {
+      setStatus((prev) => ({ ...prev, error: '' }));
+    }
   };
 
-  const handleSubmit= (e)=>{
-     e.preventDefault();
-     console.log(formData);
-     alert("Your message has been sent!");
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
+    // Validation
+    if (!formData.name.trim() || formData.name.trim().length < 2) {
+      setStatus({ submitting: false, success: false, error: 'Please enter a valid full name.' });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setStatus({ submitting: false, success: false, error: 'Please enter a valid email address.' });
+      return;
+    }
+
+    if (!formData.phone.trim() || formData.phone.trim().length < 7) {
+      setStatus({ submitting: false, success: false, error: 'Please enter a valid phone number.' });
+      return;
+    }
+
+    if (!formData.message.trim() || formData.message.trim().length < 10) {
+      setStatus({ submitting: false, success: false, error: 'Message must be at least 10 characters long.' });
+      return;
+    }
+
+    setStatus({ submitting: true, success: false, error: '' });
+
+    // Save to localStorage
+    try {
+      const existing = JSON.parse(localStorage.getItem('car_rental_contact_messages') || '[]');
+      const newMessage = {
+        id: `MSG-${Date.now()}`,
+        submittedAt: new Date().toISOString(),
+        ...formData,
+      };
+      existing.unshift(newMessage);
+      localStorage.setItem('car_rental_contact_messages', JSON.stringify(existing));
+    } catch (err) {
+      console.error('Failed to save message to localStorage', err);
+    }
+
+    // Simulate fast reliable network feedback
+    setTimeout(() => {
+      setStatus({ submitting: false, success: true, error: '' });
       setFormData({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
+        name: '',
+        email: '',
+        phone: '',
+        message: '',
+      });
+    }, 400);
   };
+
   return (
-    <section className='bg-gray-950 text-white py-20 px-10'>
-
-      <div className='text-center mb-12'>
-
-        <p className='text-red-500 font-semibold'>
-          CONTACT US
-        </p>
-        <h2 className='text-4xl font-bold mt-2'>
-          GET IN 
-           <span className='text-red-500'>TOUCH</span>
-        </h2>
-
-        <p className='text-gray-400 mt-4'>
-          Have any questions? Feel free to contact us.
-        </p>
-      </div>
-
-      <div className='max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10'>
-        <div className='bg-gray-900 p-8 rounded-xl'>
-          <h3 className='text-2xl font-semibold mb-6'>Contact Information</h3>
-          <div className='space-y-5'>
-            <div>
-              <h4 className='text-red-500 font-semibold'>
-                Address
-              </h4>
-
-              <p className='text-gray-400 mt-1'>
-                Bahawalpur, Punjab, Pakistan
-              </p>
-            </div>
-
-            <div>
-              <h4 className='text-red-500 font-semibold'>
-                Phone
-              </h4>
-
-              <p className='text-gray-400 mt-1'>
-                  +92 3094157614
-              </p>
-            </div>
-
-            <div>
-              <h4 className='text-red-500 font-semibold'>
-                Email
-              </h4>
-
-              <p className='text-gray-400 mt-1'>
-                  fkniazi2007@gmail.com
-              </p>
-            </div>
-
-            <div>
-              <h4 className='text-red-500 font-semibold'>
-                Working Hours
-              </h4>
-
-              <p className='text-gray-400 mt-1'>
-                  Monday - Sunday: 24/7
-              </p>
-            </div>
-          </div>
+    <section className="bg-gray-950 text-white py-16 sm:py-20 px-4 sm:px-6 lg:px-10">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12 sm:mb-16">
+          <p className="text-red-500 font-semibold uppercase tracking-wider text-sm">
+            CONTACT US
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold mt-2 tracking-tight">
+            GET IN <span className="text-red-500">TOUCH</span>
+          </h2>
+          <p className="text-gray-400 mt-3 max-w-xl mx-auto text-sm sm:text-base">
+            Have any questions or special rental requirements? Our team is available 24/7 to assist you.
+          </p>
         </div>
 
-        <form 
-        onSubmit={handleSubmit}
-        className='bg-gray-900 p-8 rounded-xl'
-        >
- 
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          {/* Contact Information Cards */}
+          <div className="bg-gray-900 border border-gray-800 p-6 sm:p-8 rounded-2xl shadow-xl">
+            <h3 className="text-2xl font-bold mb-6 text-white border-b border-gray-800 pb-4">
+              Contact Information
+            </h3>
 
-              <input type='text'
-              name='name'
-              placeholder='Enter Your Name'
-              value={formData.name}
-              onChange={handleChange}
-              className='bg-gray-800 p-3 rounded-lg outline-none focus:ring-2 focus:ring-red-500'
-              required
-              />
-
-              <input type='email'
-              name='email'
-              placeholder='Enter Your Email'
-              value={formData.email}
-              onChange={handleChange}
-              className='bg-gray-800 p-3 rounded-lg outline-none focus:ring-2 focus:ring-red-500'
-              required
-              />
-
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center shrink-0">
+                  <FaMapMarkerAlt size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+                    Office Location
+                  </h4>
+                  <p className="text-white mt-1 text-base">
+                    Bahawalpur, Punjab, Pakistan
+                  </p>
+                </div>
               </div>
-              
 
-              <input type='tel'
-              name='phone'
-              placeholder='Enter Your Phone'
-              value={formData.phone}
-              onChange={handleChange}
-              className='w-full bg-gray-800 p-3 rounded-lg mt-5 outline-none focus:ring-2 focus:ring-red-500'
-              required
-              />
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center shrink-0">
+                  <FaPhoneAlt size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+                    Phone & WhatsApp
+                  </h4>
+                  <a
+                    href="tel:+923094157614"
+                    className="text-white hover:text-red-400 transition mt-1 block text-base font-medium"
+                  >
+                    +92 3094157614
+                  </a>
+                </div>
+              </div>
 
-              <textarea
-              name='message'
-              placeholder='Enter Your Message'
-              value={formData.message}
-              onChange={handleChange}
-              rows="5"
-              className='w-full bg-gray-800 p-3 rounded-lg mt-5 outline-none focus:ring-2 focus:ring-red-500'
-              required
-              >
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center shrink-0">
+                  <FaEnvelope size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+                    Email Inquiries
+                  </h4>
+                  <a
+                    href="mailto:fkniazi2007@gmail.com"
+                    className="text-white hover:text-red-400 transition mt-1 block text-base font-medium"
+                  >
+                    fkniazi2007@gmail.com
+                  </a>
+                </div>
+              </div>
 
-              </textarea>
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center shrink-0">
+                  <FaClock size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+                    Working Hours
+                  </h4>
+                  <p className="text-white mt-1 text-base">
+                    Monday – Sunday: 24/7 Non-stop Service
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-             <button 
-             type='submit'
-             className='bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg mt-5 w-full font-semibold'
-             >
-              Send Message
-             </button>
-             
-        </form>
+          {/* Contact Form */}
+          <div className="bg-gray-900 border border-gray-800 p-6 sm:p-8 rounded-2xl shadow-xl">
+            <h3 className="text-2xl font-bold mb-6 text-white border-b border-gray-800 pb-4">
+              Send Us a Message
+            </h3>
+
+            {status.success ? (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                  <FaCheckCircle />
+                </div>
+                <h4 className="text-2xl font-bold text-white">Message Sent Successfully!</h4>
+                <p className="text-gray-300 mt-2 text-sm sm:text-base max-w-md mx-auto">
+                  Thank you for reaching out. Your inquiry has been recorded and our team will get back to you shortly.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStatus({ submitting: false, success: false, error: '' })}
+                  className="mt-6 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2.5 rounded-lg transition"
+                >
+                  Send Another Message
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} noValidate>
+                {status.error && (
+                  <div className="mb-5 p-3 rounded-lg bg-red-950/80 border border-red-500/50 text-red-300 text-sm">
+                    {status.error}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                      Your Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="e.g. Fahad Khan"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full bg-gray-800 border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition text-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                      Your Email *
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="e.g. name@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full bg-gray-800 border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="e.g. +92 300 1234567"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full bg-gray-800 border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition text-sm"
+                    required
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                    Your Message *
+                  </label>
+                  <textarea
+                    name="message"
+                    rows="4"
+                    placeholder="Tell us what vehicle you're interested in, pickup location, or any questions..."
+                    value={formData.message}
+                    onChange={handleChange}
+                    className="w-full bg-gray-800 border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition text-sm resize-none"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={status.submitting}
+                  className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-semibold py-3.5 rounded-lg mt-6 transition shadow-lg shadow-red-600/30 cursor-pointer"
+                >
+                  {status.submitting ? 'Sending Message...' : 'Send Message'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );
 };
 
-export default Contact
+export default Contact;

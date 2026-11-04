@@ -1,70 +1,70 @@
-import React from 'react'
-
 const Services = () => {
-  const services=[
+  const services = [
     {
-      id:"1",
+      id: "1",
       title: "Easy Booking",
-      description: "Book your favorite car quickly and easily with our simple booking process.",
+      description: "Book your favorite car quickly and easily with our streamlined, instant booking process.",
       icon: "🚗"
     },
-
     {
-      id:"2",
+      id: "2",
       title: "Affordable Prices",
-      description: "Enjoy quality cars at affordable prices with no hidden charges.",
+      description: "Enjoy premium quality cars at transparent, competitive rates with absolutely no hidden charges.",
       icon: "💰"
     },
-
     {
-      id:"3",
+      id: "3",
       title: "24/7 Support",
-      description: "Our support team is available 24/7 to help you whenever you need.",
+      description: "Our customer service and roadside assistance teams are available 24/7 whenever you need help.",
       icon: "📞"
     },
-
     {
-      id:"4",
+      id: "4",
       title: "Well Maintained Cars",
-      description: "All our cars are regularly checked and maintained for a safe journey.",
+      description: "All vehicles undergo comprehensive safety inspections and sanitization before every rental.",
       icon: "🔧"
     },
-  ]
+  ];
+
   return (
-    <section className='bg-black text-white py-20 px-10'>
-      <div className='text-center mb-12'>
-        <p className='text-red-500 font-semibold'>OUR SERVICES</p>
+    <section className="bg-black text-white py-16 sm:py-20 px-4 sm:px-6 lg:px-10">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12 sm:mb-16">
+          <p className="text-red-500 font-semibold uppercase tracking-wider text-sm">
+            Our Services
+          </p>
 
-        <h2 className='text-4xl font-bold mt-2'>
-          WHAT WE 
-          <span className='text-red-500'>OFFER</span>
-        </h2>
-        <p className='text-gray-400 mt-4'> We provide reliable and convenient car rental services.</p>
-      </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold mt-2 tracking-tight">
+            WHAT WE <span className="text-red-500">OFFER</span>
+          </h2>
+          <p className="text-gray-400 mt-3 max-w-xl mx-auto text-sm sm:text-base">
+            We provide reliable, flexible, and convenient car rental services tailored to your itinerary.
+          </p>
+        </div>
 
-      <div className='max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-        {services.map((service)=>(
-           <div 
-           key={service.id}
-           className='bg-gray-900 p-6 rounded-xl text-center hover:bg-gray-800 transition'
-           >
-           <div className='text-5xl mb-5'>
-               {service.icon}
-           </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {services.map((service) => (
+            <div
+              key={service.id}
+              className="bg-gray-900 border border-gray-800 p-6 rounded-xl text-center hover:border-red-500/40 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center"
+            >
+              <div className="text-5xl mb-5 p-3 bg-gray-800/50 rounded-2xl">
+                {service.icon}
+              </div>
 
-           <h3 className='text-xl font-bold'>
-            {service.title}
-           </h3>
+              <h3 className="text-xl font-bold text-white mb-2">
+                {service.title}
+              </h3>
 
-           <p className='text-gray-400 mt-3 leading-6'>
-            {service.description}
-           </p>
-
-           </div>
-        ))}
+              <p className="text-gray-400 text-sm leading-relaxed">
+                {service.description}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
-  )
-}
+  );
+};
 
-export default Services
+export default Services;
