@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { loadSavedMessages, saveMessages } from '../utils/storage';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -52,19 +53,14 @@ const Contact = () => {
 
     setStatus({ submitting: true, success: false, error: '' });
 
-    // Save to localStorage
-    try {
-      const existing = JSON.parse(localStorage.getItem('car_rental_contact_messages') || '[]');
-      const newMessage = {
-        id: `MSG-${Date.now()}`,
-        submittedAt: new Date().toISOString(),
-        ...formData,
-      };
-      existing.unshift(newMessage);
-      localStorage.setItem('car_rental_contact_messages', JSON.stringify(existing));
-    } catch (err) {
-      console.error('Failed to save message to localStorage', err);
-    }
+    // Save safely to localStorage with Array.isArray() validation
+    const existing = loadSavedMessages();
+    const newMessage = {
+      id: `MSG-${Date.now()}`,
+      submittedAt: new Date().toISOString(),
+      ...formData,
+    };
+    saveMessages([newMessage, ...existing]);
 
     // Simulate fast reliable network feedback
     setTimeout(() => {
@@ -110,7 +106,7 @@ const Contact = () => {
                     Office Location
                   </h4>
                   <p className="text-white mt-1 text-base">
-                    Bahawalpur, Punjab, Pakistan
+                    Commercial Fleet Center, Bahawalpur, Punjab, Pakistan
                   </p>
                 </div>
               </div>
@@ -124,10 +120,10 @@ const Contact = () => {
                     Phone & WhatsApp
                   </h4>
                   <a
-                    href="tel:+923094157614"
+                    href="tel:+18005550199"
                     className="text-white hover:text-red-400 transition mt-1 block text-base font-medium"
                   >
-                    +92 3094157614
+                    +1 (800) 555-0199 / +92 300 1234567
                   </a>
                 </div>
               </div>
@@ -141,10 +137,10 @@ const Contact = () => {
                     Email Inquiries
                   </h4>
                   <a
-                    href="mailto:fkniazi2007@gmail.com"
+                    href="mailto:support@carrent.com"
                     className="text-white hover:text-red-400 transition mt-1 block text-base font-medium"
                   >
-                    fkniazi2007@gmail.com
+                    support@carrent.com
                   </a>
                 </div>
               </div>

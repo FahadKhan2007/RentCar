@@ -1,43 +1,44 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRental } from '../context/useRental';
-import { isValidEmail } from '../data/constants';
-import { FaTag, FaCheckCircle, FaTimes } from 'react-icons/fa';
+import { FaTag, FaCheckCircle, FaTimes, FaCopy } from 'react-icons/fa';
 
 const DiscountPopUp = () => {
-  const { isDiscountPopupOpen, closeDiscountPopup, applyDiscount, discountCode, userEmail } = useRental();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const {
+    isDiscountPopupOpen,
+    closeDiscountPopup,
+    applyPromoCode,
+    validPromoCode,
+    discountApplied,
+  } = useRental();
+
+  const [copied, setCopied] = useState(false);
+  const [appliedInPopup, setAppliedInPopup] = useState(false);
   const navigate = useNavigate();
 
   if (!isDiscountPopupOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!email || !email.trim()) {
-      setError('Please enter your email address to receive 10% OFF.');
-      return;
-    }
-
-    if (!isValidEmail(email.trim())) {
-      setError('Please enter a valid email address (e.g. yourname@example.com).');
-      return;
-    }
-
-    const res = applyDiscount(email.trim());
-    if (res.success) {
-      setError('');
-      setSubmitted(true);
-    } else {
-      setError(res.message || 'Could not apply discount. Please try again.');
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(validPromoCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const handleStartBooking = () => {
-    closeDiscountPopup();
-    navigate('/booking');
+  const handleApplyAndBook = () => {
+    if (!discountApplied) {
+      applyPromoCode(validPromoCode);
+    }
+    setAppliedInPopup(true);
+    setTimeout(() => {
+      closeDiscountPopup();
+      navigate('/booking');
+    }, 600);
   };
 
   return (
@@ -57,95 +58,71 @@ const DiscountPopUp = () => {
           <FaTimes size={16} />
         </button>
 
-        {!submitted ? (
-          <>
-            <div className="w-14 h-14 bg-red-600/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner">
-              <FaTag />
-            </div>
+        <div className="text-center">
+          <div className="w-14 h-14 bg-red-600/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner">
+            <FaTag />
+          </div>
 
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-center tracking-tight">
-              Get <span className="text-red-500">10% OFF</span>
-            </h2>
+          <span className="text-xs uppercase font-semibold text-red-500 tracking-wider bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">
+            Exclusive Limited Offer
+          </span>
 
-            <p className="text-gray-300 text-center mt-3 text-sm sm:text-base leading-relaxed">
-              Enter your email address below to unlock an exclusive <b>10% OFF</b> discount on all car rentals.
+          <h2 className="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">
+            Unlock <span className="text-red-500">10% OFF</span>
+          </h2>
+
+          <p className="text-gray-300 mt-2 text-sm leading-relaxed">
+            Apply promo code <b className="text-white font-mono">{validPromoCode}</b> at checkout to save 10% on any car in our fleet.
+          </p>
+
+          <div className="bg-gray-800/80 border border-red-500/30 rounded-xl p-4 mt-5">
+            <p className="text-xs uppercase tracking-wider text-gray-400">
+              Your 10% Discount Code
             </p>
 
-            {error && (
-              <div className="mt-4 p-3 bg-red-950/80 border border-red-500/50 rounded-lg text-red-300 text-xs text-center">
-                ⚠️ {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="mt-5" noValidate>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Your Email Address *
-                </label>
-                <input
-                  type="email"
-                  placeholder="e.g. name@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (error) setError('');
-                  }}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm transition"
-                  required
-                />
-              </div>
-
+            <div className="flex items-center justify-center gap-3 mt-2">
+              <span className="text-2xl font-mono font-extrabold text-red-500 tracking-wider select-all">
+                {validPromoCode}
+              </span>
               <button
-                type="submit"
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg mt-4 transition cursor-pointer shadow-lg shadow-red-600/30 text-sm uppercase tracking-wider"
+                type="button"
+                onClick={handleCopyCode}
+                className="bg-gray-700 hover:bg-gray-600 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition text-gray-200 cursor-pointer"
+                title="Copy promo code"
               >
-                Claim 10% OFF Now
+                <FaCopy size={11} /> {copied ? 'Copied!' : 'Copy'}
               </button>
-            </form>
-
-            <p className="text-[11px] text-gray-500 text-center mt-3">
-              * Discount applies instantly to your entire rental after entering email.
-            </p>
-          </>
-        ) : (
-          <div className="text-center py-2">
-            <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">
-              <FaCheckCircle />
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              🎉 Congratulations!
-            </h2>
-
-            <p className="text-gray-300 mt-2 text-sm">
-              Your 10% discount has been activated for:
+            <p className="text-[11px] text-gray-400 mt-2">
+              Enter this code in the booking price summary to claim 10% OFF.
             </p>
-            <p className="font-semibold text-red-400 text-sm mt-0.5">
-              {email.trim() || userEmail}
-            </p>
+          </div>
 
-            <div className="bg-gray-800/80 border border-red-500/30 rounded-xl p-4 mt-5">
-              <p className="text-xs uppercase tracking-wider text-gray-400">
-                Active Promo Code
-              </p>
-
-              <div className="text-2xl font-mono font-bold text-red-500 mt-1 select-all">
-                {discountCode}
-              </div>
-
-              <p className="text-xs text-green-400 mt-2 flex items-center justify-center gap-1 font-medium">
-                ✓ Auto-applied to all rental prices!
-              </p>
-            </div>
+          <div className="mt-6 flex flex-col gap-2.5">
+            <button
+              type="button"
+              onClick={handleApplyAndBook}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition cursor-pointer shadow-lg shadow-red-600/30 text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              {appliedInPopup ? (
+                <>
+                  <FaCheckCircle /> Applied! Going to Booking...
+                </>
+              ) : (
+                'Apply Code & Start Booking'
+              )}
+            </button>
 
             <button
-              onClick={handleStartBooking}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg mt-5 transition cursor-pointer shadow-lg shadow-red-600/30"
+              type="button"
+              onClick={closeDiscountPopup}
+              className="w-full text-xs text-gray-400 hover:text-white py-2 transition"
             >
-              Start Booking With 10% OFF
+              Maybe Later
             </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

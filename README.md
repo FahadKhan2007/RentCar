@@ -125,7 +125,13 @@ Preview the production build locally:
 npm run preview
 ```
 
-### 5. Linting
+### 5. Automated Tests
+Run Vitest automated test suite:
+```bash
+npm test
+```
+
+### 6. Linting
 Verify code quality and check for ESLint issues:
 ```bash
 npm run lint
@@ -135,9 +141,18 @@ npm run lint
 
 ## 🏷️ Discount & Promo System
 
-- New visitors are presented with a **10% OFF** popup.
-- Submitting an email or entering promo code **`Niazi804`** activates the 10% discount.
-- Active discount is stored in `localStorage` under `discount` and automatically reflected on all car rental cards and checkout calculations.
+- Promo code **`Niazi804`** unlocks an instant 10% discount across the platform.
+- Validated case-insensitively on the booking page.
+- Single discount enforcement prevents duplicate stacking.
+- Active discount is reflected immediately on rental price summaries and fleet cards.
+
+---
+
+## ⏱️ Rental Pricing Rules
+
+- **Partial Days:** Partial rental days are charged as full days (e.g. 25 hours = 2 billable days).
+- **Minimum Rental Duration:** Minimum booking duration is 1 hour.
+- **Local Date & Time Validation:** Prevents past bookings and ensures return is after pickup in user's local timezone.
 
 ---
 

@@ -66,20 +66,20 @@ const Footer = () => {
           <div className="space-y-2.5 text-sm text-gray-400">
             <p className="flex items-start gap-2">
               <span className="text-red-500 font-bold">📍</span>
-              <span>Bahawalpur, Punjab, Pakistan</span>
+              <span>Commercial Fleet Center, Bahawalpur, Punjab, Pakistan</span>
             </p>
 
             <p className="flex items-center gap-2">
               <span className="text-red-500 font-bold">📞</span>
-              <a href="tel:+923094157614" className="hover:text-red-400 transition">
-                +92 3094157614
+              <a href="tel:+18005550199" className="hover:text-red-400 transition">
+                +1 (800) 555-0199 / +92 300 1234567
               </a>
             </p>
 
             <p className="flex items-center gap-2">
               <span className="text-red-500 font-bold">✉️</span>
-              <a href="mailto:fkniazi2007@gmail.com" className="hover:text-red-400 transition">
-                fkniazi2007@gmail.com
+              <a href="mailto:support@carrent.com" className="hover:text-red-400 transition">
+                support@carrent.com
               </a>
             </p>
           </div>
@@ -110,7 +110,7 @@ const Footer = () => {
             </a>
 
             <a
-              href="https://www.instagram.com/fahadkhanniazi_812/"
+              href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
@@ -120,7 +120,7 @@ const Footer = () => {
             </a>
 
             <a
-              href="https://www.youtube.com/@F.kgaming-pb4ce"
+              href="https://youtube.com"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="YouTube"

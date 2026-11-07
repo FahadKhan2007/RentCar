@@ -1,53 +1,56 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RentalContext } from './RentalContextInstance';
-import { DISCOUNT_CODE, isValidEmail } from '../data/constants';
+import { VALID_PROMO_CODE, PROMO_DISCOUNT_PERCENT, validatePromoCode } from '../utils/promoCode';
+import {
+  loadSavedBookings,
+  saveBookings,
+  loadSavedPromoCode,
+  savePromoCode,
+} from '../utils/storage';
 
 export const RentalProvider = ({ children }) => {
-  // Store user email that unlocked the 10% discount
-  const [userEmail, setUserEmail] = useState(() => {
-    try {
-      const email = localStorage.getItem('discount_user_email') || localStorage.getItem('discount_email');
-      return isValidEmail(email) ? email.trim() : '';
-    } catch {
-      return '';
-    }
+  // Promo code state loaded safely from localStorage
+  const [promoCode, setPromoCode] = useState(() => {
+    return loadSavedPromoCode();
   });
 
-  // Discount is STRICTLY applied only when a valid email has been entered
+  // 10% Discount is strictly applied ONLY when the correct promo code Niazi804 is active
   const [discountApplied, setDiscountApplied] = useState(() => {
-    try {
-      const email = localStorage.getItem('discount_user_email') || localStorage.getItem('discount_email');
-      return isValidEmail(email);
-    } catch {
-      return false;
-    }
+    const saved = loadSavedPromoCode();
+    return Boolean(saved && saved.toUpperCase() === VALID_PROMO_CODE.toUpperCase());
   });
 
   const [isDiscountPopupOpen, setIsDiscountPopupOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState(null);
 
-  // Saved bookings backed by localStorage
+  // Saved bookings backed by safe localStorage parser with Array.isArray() validation
   const [bookings, setBookings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('car_rental_bookings');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return loadSavedBookings();
   });
 
-  // Automatically trigger discount popup for visitors who have not yet entered their email
+  // Clean up legacy auto-discount keys from previous sessions to prevent accidental free discounts
+  useEffect(() => {
+    try {
+      localStorage.removeItem('discount');
+      localStorage.removeItem('discount_applied');
+      localStorage.removeItem('discount_email');
+      localStorage.removeItem('discount_user_email');
+    } catch {
+      // Ignore if localStorage unavailable
+    }
+  }, []);
+
+  // Show promotional popup once for new visitors who have not yet applied the promo code
   useEffect(() => {
     let timer;
     try {
-      const email = localStorage.getItem('discount_user_email') || localStorage.getItem('discount_email');
-      const hasEnteredEmail = isValidEmail(email);
+      const savedCode = loadSavedPromoCode();
+      const popupDismissed = sessionStorage.getItem('promo_popup_dismissed') === 'true';
 
-      // If user has not entered their email to claim the discount, show popup automatically
-      if (!hasEnteredEmail) {
+      if (!savedCode && !popupDismissed) {
         timer = setTimeout(() => {
           setIsDiscountPopupOpen(true);
-        }, 700);
+        }, 900);
       }
     } catch {
       // Fallback
@@ -58,43 +61,42 @@ export const RentalProvider = ({ children }) => {
     };
   }, []);
 
-  // Apply discount: only succeeds if a valid email is provided
-  const applyDiscount = useCallback((email = '') => {
-    const trimmed = typeof email === 'string' ? email.trim() : '';
-    if (!isValidEmail(trimmed)) {
-      return { success: false, message: 'Please enter a valid email address.' };
-    }
+  // Apply promo code with case-insensitivity and single-discount enforcement
+  const applyPromoCode = useCallback(
+    (code = '') => {
+      const result = validatePromoCode(code, discountApplied);
 
-    try {
-      localStorage.setItem('discount_user_email', trimmed);
-      localStorage.setItem('discount_email', trimmed);
-      localStorage.setItem('discount', 'true');
-      localStorage.setItem('discount_applied', 'true');
-      window.dispatchEvent(new Event('discountApplied'));
-    } catch (e) {
-      console.warn('LocalStorage not available', e);
-    }
+      if (!result.isValid) {
+        return { success: false, error: result.error };
+      }
 
-    setUserEmail(trimmed);
-    setDiscountApplied(true);
-    return { success: true, message: '10% Discount applied successfully!' };
-  }, []);
+      setPromoCode(result.code);
+      setDiscountApplied(true);
+      savePromoCode(result.code);
 
-  const removeDiscount = useCallback(() => {
-    try {
-      localStorage.removeItem('discount_user_email');
-      localStorage.removeItem('discount_email');
-      localStorage.removeItem('discount');
-      localStorage.removeItem('discount_applied');
-      window.dispatchEvent(new Event('discountRemoved'));
-    } catch (e) {
-      console.warn('LocalStorage not available', e);
-    }
-    setUserEmail('');
+      return {
+        success: true,
+        message: result.message,
+        code: result.code,
+        discountPercent: result.discountPercent,
+      };
+    },
+    [discountApplied]
+  );
+
+  // Remove applied promo code
+  const removePromoCode = useCallback(() => {
+    setPromoCode(null);
     setDiscountApplied(false);
+    savePromoCode(null);
   }, []);
 
   const closeDiscountPopup = useCallback(() => {
+    try {
+      sessionStorage.setItem('promo_popup_dismissed', 'true');
+    } catch {
+      // Ignore
+    }
     setIsDiscountPopupOpen(false);
   }, []);
 
@@ -102,6 +104,7 @@ export const RentalProvider = ({ children }) => {
     setIsDiscountPopupOpen(true);
   }, []);
 
+  // Safe booking persistence
   const saveBooking = useCallback((bookingData) => {
     const newBooking = {
       id: `CR-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -110,12 +113,9 @@ export const RentalProvider = ({ children }) => {
     };
 
     setBookings((prev) => {
-      const updated = [newBooking, ...prev];
-      try {
-        localStorage.setItem('car_rental_bookings', JSON.stringify(updated));
-      } catch (e) {
-        console.error('Failed to save booking to localStorage', e);
-      }
+      const safePrev = Array.isArray(prev) ? prev : [];
+      const updated = [newBooking, ...safePrev];
+      saveBookings(updated);
       return updated;
     });
 
@@ -124,12 +124,9 @@ export const RentalProvider = ({ children }) => {
 
   const deleteBooking = useCallback((bookingId) => {
     setBookings((prev) => {
-      const updated = prev.filter((b) => b.id !== bookingId);
-      try {
-        localStorage.setItem('car_rental_bookings', JSON.stringify(updated));
-      } catch (e) {
-        console.error('Failed to update bookings in localStorage', e);
-      }
+      const safePrev = Array.isArray(prev) ? prev : [];
+      const updated = safePrev.filter((b) => b && b.id !== bookingId);
+      saveBookings(updated);
       return updated;
     });
   }, []);
@@ -137,11 +134,12 @@ export const RentalProvider = ({ children }) => {
   return (
     <RentalContext.Provider
       value={{
-        userEmail,
+        promoCode,
         discountApplied,
-        discountCode: DISCOUNT_CODE,
-        applyDiscount,
-        removeDiscount,
+        discountPercent: discountApplied ? PROMO_DISCOUNT_PERCENT : 0,
+        validPromoCode: VALID_PROMO_CODE,
+        applyPromoCode,
+        removePromoCode,
         isDiscountPopupOpen,
         openDiscountPopup,
         closeDiscountPopup,

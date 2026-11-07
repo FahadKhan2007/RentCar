@@ -3,6 +3,16 @@ import { useSearchParams, useLocation, Link } from 'react-router-dom';
 import { useRental } from '../context/useRental';
 import { CARS_DATA, getCarByName } from '../data/carsData';
 import {
+  getLocalDateString,
+  parseLocalDateTime,
+  validateBookingDates,
+} from '../utils/dateValidation';
+import {
+  calculateBillableRentalDays,
+  calculateBookingPrice,
+  PRICING_RULES_NOTE,
+} from '../utils/bookingCalculations';
+import {
   FaCalendarAlt,
   FaClock,
   FaCar,
@@ -10,25 +20,27 @@ import {
   FaTrashAlt,
   FaTag,
   FaShieldAlt,
+  FaInfoCircle,
 } from 'react-icons/fa';
 
 const Booking = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const {
-    userEmail,
+    promoCode,
     discountApplied,
-    discountCode,
-    applyDiscount,
-    openDiscountPopup,
+    discountPercent,
+    validPromoCode,
+    applyPromoCode,
+    removePromoCode,
     selectedCar,
     bookings,
     saveBooking,
     deleteBooking,
   } = useRental();
 
-  // Get today's date formatted as YYYY-MM-DD
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  // Get user's local date formatted as YYYY-MM-DD
+  const today = useMemo(() => getLocalDateString(), []);
 
   // Determine initial car from query param, router state, or context
   const initialCarParam = searchParams.get('car');
@@ -47,12 +59,13 @@ const Booking = () => {
     pickupdate: '',
     returndate: '',
     pickuptime: '10:00',
-    returntime: '10:00',
+    returntime: '11:00',
   }));
 
   const [dateError, setDateError] = useState('');
-  const [discountEmailInput, setDiscountEmailInput] = useState('');
-  const [discountEmailError, setDiscountEmailError] = useState('');
+  const [promoInput, setPromoInput] = useState('');
+  const [promoError, setPromoError] = useState('');
+  const [promoSuccess, setPromoSuccess] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState(null);
   const [showBookingsList, setShowBookingsList] = useState(false);
 
@@ -71,82 +84,125 @@ const Booking = () => {
     setDateError('');
   };
 
-  // Date and duration calculation
+  // Date and duration calculation using pure business logic utilities
   const rentalCalculations = useMemo(() => {
     if (!bookingData.pickupdate || !bookingData.returndate || !currentCar) {
-      return { days: 1, subtotal: currentCar?.pricePerDay || 0, discount: 0, total: currentCar?.pricePerDay || 0 };
+      return {
+        billableDays: 1,
+        dailyRate: currentCar?.pricePerDay || 0,
+        subtotal: currentCar?.pricePerDay || 0,
+        discountPercent: discountPercent,
+        discountAmount: discountApplied
+          ? Math.round(((currentCar?.pricePerDay || 0) * discountPercent) / 100)
+          : 0,
+        totalPrice: discountApplied
+          ? Math.round((currentCar?.pricePerDay || 0) * 0.9)
+          : currentCar?.pricePerDay || 0,
+        invalidDates: false,
+      };
     }
 
-    const start = new Date(`${bookingData.pickupdate}T${bookingData.pickuptime || '00:00'}`);
-    const end = new Date(`${bookingData.returndate}T${bookingData.returntime || '00:00'}`);
+    const pickupDateTime = parseLocalDateTime(
+      bookingData.pickupdate,
+      bookingData.pickuptime
+    );
+    const returnDateTime = parseLocalDateTime(
+      bookingData.returndate,
+      bookingData.returntime
+    );
 
-    if (end < start) {
-      return { days: 0, subtotal: 0, discount: 0, total: 0, invalidDates: true };
+    if (!pickupDateTime || !returnDateTime || returnDateTime <= pickupDateTime) {
+      return {
+        billableDays: 0,
+        dailyRate: currentCar.pricePerDay,
+        subtotal: 0,
+        discountPercent: 0,
+        discountAmount: 0,
+        totalPrice: 0,
+        invalidDates: true,
+      };
     }
 
-    const diffMs = end - start;
-    let days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (days <= 0) days = 1; // Minimum 1 day
+    const billableDays = calculateBillableRentalDays(
+      pickupDateTime,
+      returnDateTime
+    );
 
-    const subtotal = days * currentCar.pricePerDay;
-    const discount = discountApplied ? Math.round(subtotal * 0.1) : 0;
-    const total = subtotal - discount;
+    const price = calculateBookingPrice({
+      dailyRate: currentCar.pricePerDay,
+      billableDays,
+      discountPercent: discountApplied ? discountPercent : 0,
+    });
 
-    return { days, subtotal, discount, total, invalidDates: false };
-  }, [bookingData.pickupdate, bookingData.returndate, bookingData.pickuptime, bookingData.returntime, currentCar, discountApplied]);
+    return { ...price, invalidDates: false };
+  }, [
+    bookingData.pickupdate,
+    bookingData.returndate,
+    bookingData.pickuptime,
+    bookingData.returntime,
+    currentCar,
+    discountApplied,
+    discountPercent,
+  ]);
 
-  // Validate dates before submission
+  // Validate dates before submission using validateBookingDates
   const validateForm = () => {
+    if (!bookingData.name.trim() || bookingData.name.trim().length < 2) {
+      setDateError('Please enter your full name.');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(bookingData.email.trim())) {
+      setDateError('Please enter a valid email address.');
+      return false;
+    }
+
+    if (!bookingData.phone.trim() || bookingData.phone.trim().length < 7) {
+      setDateError('Please enter a valid phone number.');
+      return false;
+    }
+
     if (!bookingData.car) {
       setDateError('Please select a car from our fleet.');
       return false;
     }
 
-    if (!bookingData.pickupdate) {
-      setDateError('Please choose a valid pickup date.');
-      return false;
-    }
+    const dateRes = validateBookingDates({
+      pickupDate: bookingData.pickupdate,
+      pickupTime: bookingData.pickuptime,
+      returnDate: bookingData.returndate,
+      returnTime: bookingData.returntime,
+      now: new Date(),
+    });
 
-    if (bookingData.pickupdate < today) {
-      setDateError('Pickup date cannot be in the past.');
+    if (!dateRes.isValid) {
+      setDateError(dateRes.error);
       return false;
-    }
-
-    if (!bookingData.returndate) {
-      setDateError('Please choose a valid return date.');
-      return false;
-    }
-
-    if (bookingData.returndate < bookingData.pickupdate) {
-      setDateError('Return date cannot be earlier than pickup date.');
-      return false;
-    }
-
-    if (bookingData.pickupdate === bookingData.returndate) {
-      if (bookingData.pickuptime && bookingData.returntime && bookingData.returntime <= bookingData.pickuptime) {
-        setDateError('For same-day rentals, return time must be later than pickup time.');
-        return false;
-      }
     }
 
     setDateError('');
     return true;
   };
 
-  const handleApplyDiscountEmail = (e) => {
+  const handleApplyPromoCode = (e) => {
     e.preventDefault();
-    if (!discountEmailInput.trim()) {
-      setDiscountEmailError('Please enter your email to unlock 10% OFF.');
-      return;
-    }
+    setPromoError('');
+    setPromoSuccess('');
 
-    const res = applyDiscount(discountEmailInput.trim());
+    const res = applyPromoCode(promoInput);
     if (res.success) {
-      setDiscountEmailError('');
-      setDiscountEmailInput('');
+      setPromoSuccess(res.message);
+      setPromoInput('');
     } else {
-      setDiscountEmailError(res.message);
+      setPromoError(res.error);
     }
+  };
+
+  const handleRemovePromo = () => {
+    removePromoCode();
+    setPromoSuccess('');
+    setPromoError('Promo code removed.');
   };
 
   const handleSubmit = (e) => {
@@ -166,11 +222,13 @@ const Booking = () => {
       pickupTime: bookingData.pickuptime,
       returnDate: bookingData.returndate,
       returnTime: bookingData.returntime,
-      rentalDays: rentalCalculations.days,
+      rentalDays: rentalCalculations.billableDays,
       subtotal: rentalCalculations.subtotal,
+      promoCodeApplied: discountApplied ? promoCode || validPromoCode : null,
       discountApplied: discountApplied,
-      discountAmount: rentalCalculations.discount,
-      totalPrice: rentalCalculations.total,
+      discountAmount: rentalCalculations.discountAmount,
+      totalPrice: rentalCalculations.totalPrice,
+      pricingRule: PRICING_RULES_NOTE,
       status: 'Confirmed',
     };
 
@@ -186,8 +244,10 @@ const Booking = () => {
       pickupdate: '',
       returndate: '',
       pickuptime: '10:00',
-      returntime: '10:00',
+      returntime: '11:00',
     });
+    setPromoSuccess('');
+    setPromoError('');
   };
 
   return (
@@ -202,11 +262,11 @@ const Booking = () => {
             RENT <span className="text-red-500">NOW</span>
           </h1>
           <p className="text-gray-400 mt-3 max-w-xl mx-auto text-sm sm:text-base">
-            Select your car, pick your dates, and enjoy instant online booking with no hidden fees.
+            Select your car, pick your dates, and enjoy instant online booking with transparent pricing.
           </p>
 
           {/* Toggle View Saved Bookings */}
-          {bookings.length > 0 && (
+          {Array.isArray(bookings) && bookings.length > 0 && (
             <div className="mt-4">
               <button
                 type="button"
@@ -222,14 +282,14 @@ const Booking = () => {
         </div>
 
         {/* Saved Bookings Drawer/Section */}
-        {showBookingsList && bookings.length > 0 && (
+        {showBookingsList && Array.isArray(bookings) && bookings.length > 0 && (
           <div className="mb-12 bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl animate-in fade-in duration-200">
             <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-800">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <FaCheckCircle className="text-green-500" /> My Saved Bookings
               </h3>
               <span className="text-xs text-gray-400">
-                Stored securely in your browser
+                Stored securely in your local browser
               </span>
             </div>
 
@@ -266,7 +326,7 @@ const Booking = () => {
                       📅 {b.pickupDate} ({b.pickupTime}) → {b.returnDate} ({b.returnTime})
                     </p>
                     <div className="flex items-center justify-between font-semibold pt-1">
-                      <span>Duration: {b.rentalDays} day(s)</span>
+                      <span>Duration: {b.rentalDays} billable day(s)</span>
                       <span className="text-red-400 text-sm font-bold">
                         Total: ${b.totalPrice}
                       </span>
@@ -322,17 +382,23 @@ const Booking = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Rental Duration:</span>
-                  <span className="text-white">{confirmedBooking.rentalDays} Day(s)</span>
+                  <span className="text-gray-400">Billable Duration:</span>
+                  <span className="text-white">
+                    {confirmedBooking.rentalDays} Day(s)
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-400 italic">
+                  <span>Pricing Rule:</span>
+                  <span>{confirmedBooking.pricingRule}</span>
                 </div>
                 {confirmedBooking.discountApplied && (
                   <div className="flex justify-between text-green-400">
-                    <span>10% Discount Applied:</span>
+                    <span>10% Promo Discount ({confirmedBooking.promoCodeApplied}):</span>
                     <span>-${confirmedBooking.discountAmount}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-gray-700 pt-2 text-base font-extrabold">
-                  <span className="text-white">Total Amount Paid:</span>
+                  <span className="text-white">Total Amount:</span>
                   <span className="text-red-500">${confirmedBooking.totalPrice}</span>
                 </div>
               </div>
@@ -369,8 +435,9 @@ const Booking = () => {
             </h2>
 
             {dateError && (
-              <div className="mb-5 p-3.5 rounded-lg bg-red-950/80 border border-red-500/50 text-red-300 text-sm">
-                ⚠️ {dateError}
+              <div className="mb-5 p-3.5 rounded-lg bg-red-950/80 border border-red-500/50 text-red-300 text-sm flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{dateError}</span>
               </div>
             )}
 
@@ -416,7 +483,7 @@ const Booking = () => {
                 <input
                   type="tel"
                   name="phone"
-                  placeholder="e.g. +92 300 1234567"
+                  placeholder="e.g. +1 555 0199 or +92 300 1234567"
                   value={bookingData.phone}
                   onChange={handleChange}
                   className="w-full bg-gray-800 border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition text-sm"
@@ -445,7 +512,7 @@ const Booking = () => {
                 </select>
               </div>
 
-              {/* Pickup & Return Dates */}
+              {/* Pickup & Return Dates & Times */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 pt-4 border-t border-gray-800">
                 <div>
                   <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
@@ -460,6 +527,9 @@ const Booking = () => {
                     className="w-full bg-gray-800 border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition text-sm"
                     required
                   />
+                  <span className="text-[11px] text-gray-500 mt-1 block">
+                    Local date (today or future)
+                  </span>
                 </div>
 
                 <div>
@@ -475,6 +545,9 @@ const Booking = () => {
                     className="w-full bg-gray-800 border border-gray-700 text-white p-3 rounded-lg outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition text-sm"
                     required
                   />
+                  <span className="text-[11px] text-gray-500 mt-1 block">
+                    On or after pickup date
+                  </span>
                 </div>
 
                 <div>
@@ -524,7 +597,7 @@ const Booking = () => {
                 <span>Rental Summary</span>
                 {discountApplied && (
                   <span className="text-xs bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">
-                    10% OFF
+                    10% OFF Active
                   </span>
                 )}
               </h3>
@@ -559,10 +632,17 @@ const Booking = () => {
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Rental Duration:</span>
-                      <span className="font-medium text-white">
-                        {rentalCalculations.days} Day{rentalCalculations.days > 1 ? 's' : ''}
+                      <span className="text-gray-400">Billable Rental Days:</span>
+                      <span className="font-semibold text-white">
+                        {rentalCalculations.billableDays} Day
+                        {rentalCalculations.billableDays !== 1 ? 's' : ''}
                       </span>
+                    </div>
+
+                    {/* Pricing rule notice banner */}
+                    <div className="p-2.5 bg-gray-800/80 border border-gray-700/60 rounded-lg text-xs text-gray-300 flex items-center gap-2">
+                      <FaInfoCircle className="text-red-400 shrink-0" size={13} />
+                      <span>{PRICING_RULES_NOTE}</span>
                     </div>
 
                     <div className="flex justify-between">
@@ -570,52 +650,66 @@ const Booking = () => {
                       <span className="font-medium text-white">${rentalCalculations.subtotal}</span>
                     </div>
 
+                    {/* Promo Code Section */}
                     {discountApplied ? (
-                      <div className="flex justify-between text-green-400 font-medium">
-                        <span className="flex items-center gap-1">
-                          <FaTag size={12} /> 10% Promo Discount ({userEmail || discountCode}):
-                        </span>
-                        <span>-${rentalCalculations.discount}</span>
+                      <div className="p-3 bg-green-950/40 border border-green-500/40 rounded-xl flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5 text-green-400 font-semibold text-xs">
+                            <FaTag size={11} /> 10% Promo Discount ({promoCode || validPromoCode})
+                          </div>
+                          <span className="text-[11px] text-gray-400">
+                            -${rentalCalculations.discountAmount} deducted
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemovePromo}
+                          className="text-xs text-red-400 hover:text-red-300 underline cursor-pointer"
+                        >
+                          Remove
+                        </button>
                       </div>
                     ) : (
                       <div className="pt-2 bg-gray-800/40 border border-gray-700/60 rounded-xl p-3">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
-                            <FaTag size={10} /> Want 10% OFF?
+                            <FaTag size={10} /> Have a Promo Code?
                           </span>
-                          <button
-                            type="button"
-                            onClick={openDiscountPopup}
-                            className="text-[11px] text-gray-400 hover:text-white underline cursor-pointer"
-                          >
-                            Open Popup
-                          </button>
                         </div>
 
-                        <form onSubmit={handleApplyDiscountEmail} className="flex gap-2" noValidate>
+                        <form onSubmit={handleApplyPromoCode} className="flex gap-2" noValidate>
                           <input
-                            type="email"
-                            placeholder="Enter your email"
-                            value={discountEmailInput}
+                            type="text"
+                            placeholder="Enter promo code (e.g. Niazi804)"
+                            value={promoInput}
                             onChange={(e) => {
-                              setDiscountEmailInput(e.target.value);
-                              if (discountEmailError) setDiscountEmailError('');
+                              setPromoInput(e.target.value);
+                              if (promoError) setPromoError('');
+                              if (promoSuccess) setPromoSuccess('');
                             }}
-                            className="w-full bg-gray-800 border border-gray-700 text-white px-3 py-1.5 rounded-lg text-xs outline-none focus:border-red-500"
+                            className="w-full bg-gray-800 border border-gray-700 text-white px-3 py-1.5 rounded-lg text-xs outline-none focus:border-red-500 font-mono uppercase placeholder:normal-case placeholder:font-sans"
                           />
                           <button
                             type="submit"
                             className="bg-red-600 hover:bg-red-700 text-xs font-bold px-3 py-1.5 rounded-lg text-white transition shrink-0 cursor-pointer shadow-md shadow-red-600/30"
                           >
-                            Claim
+                            Apply
                           </button>
                         </form>
 
-                        {discountEmailError && (
-                          <p className="text-[11px] text-red-400 mt-1">{discountEmailError}</p>
+                        {promoError && (
+                          <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1">
+                            ⚠️ {promoError}
+                          </p>
                         )}
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          Enter email to unlock instant 10% discount on this booking.
+                        {promoSuccess && (
+                          <p className="text-[11px] text-green-400 mt-1.5 flex items-center gap-1">
+                            ✓ {promoSuccess}
+                          </p>
+                        )}
+
+                        <p className="text-[10px] text-gray-400 mt-1.5">
+                          Use code <b className="text-gray-200">{validPromoCode}</b> for 10% OFF on your booking.
                         </p>
                       </div>
                     )}
@@ -627,11 +721,11 @@ const Booking = () => {
                           Total Price
                         </span>
                         <span className="text-[11px] text-gray-400">
-                          Includes all taxes & standard insurance
+                          Includes taxes and vehicle coverage
                         </span>
                       </div>
                       <span className="text-2xl sm:text-3xl font-extrabold text-red-500">
-                        ${rentalCalculations.total}
+                        ${rentalCalculations.totalPrice}
                       </span>
                     </div>
                   </div>
