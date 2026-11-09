@@ -6,11 +6,8 @@ import {
   FaCheckCircle,
   FaTimes,
   FaCopy,
-  FaPaperPlane,
-  FaSpinner,
   FaExclamationTriangle,
-  FaRedo,
-  FaExternalLinkAlt,
+  FaArrowRight,
 } from 'react-icons/fa';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,13 +21,10 @@ const DiscountPopUp = () => {
   } = useRental();
 
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [successEmail, setSuccessEmail] = useState('');
-  const [previewUrl, setPreviewUrl] = useState('');
   const [copied, setCopied] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
 
   const inputRef = useRef(null);
   const navigate = useNavigate();
@@ -71,81 +65,25 @@ const DiscountPopUp = () => {
     };
   }, [isDiscountPopupOpen, handleClose]);
 
-  // Cooldown countdown effect for the resend button
-  useEffect(() => {
-    let timer;
-    if (resendCooldown > 0) {
-      timer = setTimeout(() => {
-        setResendCooldown((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [resendCooldown]);
-
   if (!isDiscountPopupOpen) return null;
 
-  const handleSendEmail = async (targetEmail) => {
-    const trimmed = targetEmail.trim();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const trimmed = email.trim();
 
     if (!trimmed) {
-      setError('Please enter your email address to receive your 10% promo code.');
-      return false;
+      setError('Please enter your email address to unlock your discount.');
+      return;
     }
 
     if (!EMAIL_REGEX.test(trimmed)) {
       setError('Please enter a valid email address (e.g. yourname@example.com).');
-      return false;
+      return;
     }
 
-    setIsLoading(true);
     setError('');
-
-    try {
-      const response = await fetch('/api/send-promo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: trimmed }),
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.error ||
-            'Unable to deliver email at this time. Please verify your email and try again.'
-        );
-      }
-
-      setSubmitted(true);
-      setSuccessEmail(trimmed);
-      if (data.previewUrl) {
-        setPreviewUrl(data.previewUrl);
-      }
-      setResendCooldown(30); // 30 seconds cooldown between resends
-      return true;
-    } catch (err) {
-      setError(
-        err.message || 'Network error: could not connect to email delivery service.'
-      );
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isLoading) return;
-    await handleSendEmail(email);
-  };
-
-  const handleResend = async () => {
-    if (resendCooldown > 0 || isLoading) return;
-    await handleSendEmail(successEmail || email);
+    setSuccessEmail(trimmed);
+    setSubmitted(true);
   };
 
   const handleCopyCode = async () => {
@@ -187,7 +125,7 @@ const DiscountPopUp = () => {
         </button>
 
         {!submitted ? (
-          /* Form View: Offer + Email Input + Get My Promo Code Button */
+          /* Form View: Offer + Email Input + Get Promo Code Button */
           <div className="text-center">
             <div className="w-14 h-14 bg-red-600/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-inner">
               <FaTag />
@@ -202,7 +140,7 @@ const DiscountPopUp = () => {
             </h2>
 
             <p className="text-gray-300 mt-2 text-sm leading-relaxed">
-              Enter your email address to receive your exclusive 10% discount promo code sent directly to your inbox with full redemption instructions.
+              Enter your email address to immediately unlock your exclusive 10% discount promo code for your next car rental.
             </p>
 
             {error && (
@@ -226,74 +164,46 @@ const DiscountPopUp = () => {
                   type="email"
                   placeholder="e.g. yourname@example.com"
                   value={email}
-                  disabled={isLoading}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (error) setError('');
                   }}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm transition disabled:opacity-50"
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm transition"
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-800/60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-lg mt-4 transition cursor-pointer shadow-lg shadow-red-600/30 text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg mt-4 transition cursor-pointer shadow-lg shadow-red-600/30 text-sm uppercase tracking-wider flex items-center justify-center gap-2"
               >
-                {isLoading ? (
-                  <>
-                    <FaSpinner className="animate-spin text-base" />
-                    <span>Sending Promo Code...</span>
-                  </>
-                ) : (
-                  <>
-                    <FaPaperPlane className="text-xs" />
-                    <span>Get My Promo Code</span>
-                  </>
-                )}
+                <FaTag className="text-xs" />
+                <span>Get Promo Code</span>
               </button>
             </form>
 
             <p className="text-[11px] text-gray-500 text-center mt-4">
-              🔒 We respect your privacy. No spam, only your 10% promo code.
+              🔒 Enter your email to reveal your instant discount code.
             </p>
           </div>
         ) : (
-          /* Success View: Delivery Confirmation + Code Details + Resend Option */
+          /* Success View: Instant Confirmation + Promo Code Niazi804 + Copy Button */
           <div className="text-center py-2">
             <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">
               <FaCheckCircle />
             </div>
 
             <h2 id="promo-popup-heading" className="text-2xl sm:text-3xl font-extrabold text-white">
-              Promo Code Sent!
+              Congratulations!
             </h2>
 
-            <p className="text-gray-300 mt-2 text-sm leading-relaxed">
-              We have dispatched your exclusive 10% discount promo code to:
-            </p>
-            <p className="font-semibold text-red-400 text-sm mt-0.5 break-all">
-              {successEmail}
+            <p className="text-gray-200 mt-2 text-base font-semibold">
+              You&apos;ve unlocked your 10% discount.
             </p>
 
-            <p className="text-xs text-gray-400 mt-2">
-              Please check your inbox (and spam/junk folder) for your promo code and redemption instructions.
+            <p className="text-xs text-gray-400 mt-1">
+              Registered for: <span className="text-red-400 font-medium break-all">{successEmail}</span>
             </p>
-
-            {previewUrl && (
-              <div className="mt-3">
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 underline font-medium bg-red-950/40 border border-red-500/30 px-3 py-1.5 rounded-lg"
-                >
-                  <FaExternalLinkAlt size={10} />
-                  <span>View Sent Email (Preview Link)</span>
-                </a>
-              </div>
-            )}
 
             {/* Promo Code Box */}
             <div className="bg-gray-800/80 border border-red-500/30 rounded-xl p-4 mt-5">
@@ -320,12 +230,6 @@ const DiscountPopUp = () => {
               </p>
             </div>
 
-            {error && (
-              <div className="mt-3 p-2.5 bg-red-950/80 border border-red-500/50 rounded-lg text-red-300 text-xs text-left">
-                ⚠️ {error}
-              </div>
-            )}
-
             {/* Actions */}
             <div className="mt-5 flex flex-col gap-2.5">
               <button
@@ -333,21 +237,8 @@ const DiscountPopUp = () => {
                 onClick={handleApplyAndBook}
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-lg transition cursor-pointer shadow-lg shadow-red-600/30 text-sm uppercase tracking-wider flex items-center justify-center gap-2"
               >
-                Apply Code & Start Booking
-              </button>
-
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resendCooldown > 0 || isLoading}
-                className="text-xs text-gray-400 hover:text-white py-1.5 transition flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <FaRedo size={10} className={isLoading ? 'animate-spin' : ''} />
-                <span>
-                  {resendCooldown > 0
-                    ? `Resend available in ${resendCooldown}s`
-                    : 'Didn’t receive email? Resend Promo Code'}
-                </span>
+                <span>Apply Code & Start Booking</span>
+                <FaArrowRight size={12} />
               </button>
 
               <button
@@ -358,7 +249,7 @@ const DiscountPopUp = () => {
                 }}
                 className="text-[11px] text-gray-400 hover:text-red-400 underline transition cursor-pointer mt-1"
               >
-                Send to a different email address
+                Use a different email address
               </button>
             </div>
           </div>
