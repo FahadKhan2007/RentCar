@@ -1,3 +1,11 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Local CA Cache
+server/.trusted-system-cas.pem
+
 # Logs
 logs
 *.log

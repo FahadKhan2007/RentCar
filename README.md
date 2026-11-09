@@ -108,11 +108,16 @@ npm install
 ```
 
 ### 3. Development Server
-Start the local development server:
+Start the local development server (includes the built-in email API middleware):
 ```bash
 npm run dev
 ```
 Open your browser at `http://localhost:5173`.
+
+Alternatively, to run the standalone Express backend server:
+```bash
+npm run server
+```
 
 ### 4. Production Build
 Build the optimized production bundles:
@@ -126,7 +131,7 @@ npm run preview
 ```
 
 ### 5. Automated Tests
-Run Vitest automated test suite:
+Run Vitest automated test suite (59 unit and integration tests):
 ```bash
 npm test
 ```
@@ -136,6 +141,34 @@ Verify code quality and check for ESLint issues:
 ```bash
 npm run lint
 ```
+
+---
+
+## 📧 Email & SMTP Configuration
+
+The promo code delivery system uses **Nodemailer** with secure backend credentials stored in `.env`.
+
+### Environment Variables Setup:
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+
+Set your SMTP credentials in `.env`:
+```env
+PORT=5000
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-16-character-app-password
+SMTP_FROM="CARRENT Official" <no-reply@carrent.com>
+PROMO_CODE=Niazi804
+DISCOUNT_PERCENT=10
+```
+
+> [!NOTE]
+> For **Gmail**: Enable 2-Step Verification in your Google Account and generate an **App Password** (16 characters) under Security -> App Passwords. Use this App Password as `SMTP_PASS`.
 
 ---
 

@@ -37,6 +37,7 @@ const Booking = () => {
     bookings,
     saveBooking,
     deleteBooking,
+    openDiscountPopup,
   } = useRental();
 
   // Get user's local date formatted as YYYY-MM-DD
@@ -708,9 +709,16 @@ const Booking = () => {
                           </p>
                         )}
 
-                        <p className="text-[10px] text-gray-400 mt-1.5">
-                          Use code <b className="text-gray-200">{validPromoCode}</b> for 10% OFF on your booking.
-                        </p>
+                        <div className="mt-2.5 pt-2 border-t border-gray-700/40 flex items-center justify-between text-[11px]">
+                          <span className="text-gray-400">Need a 10% promo code?</span>
+                          <button
+                            type="button"
+                            onClick={openDiscountPopup}
+                            className="text-red-400 hover:text-red-300 font-semibold underline cursor-pointer"
+                          >
+                            Get Promo Code
+                          </button>
+                        </div>
                       </div>
                     )}
 

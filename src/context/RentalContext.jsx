@@ -40,17 +40,15 @@ export const RentalProvider = ({ children }) => {
     }
   }, []);
 
-  // Show promotional popup once for new visitors who have not yet applied the promo code
+  // Show promotional popup on load if discount is not yet applied
   useEffect(() => {
     let timer;
     try {
       const savedCode = loadSavedPromoCode();
-      const popupDismissed = sessionStorage.getItem('promo_popup_dismissed') === 'true';
-
-      if (!savedCode && !popupDismissed) {
+      if (!savedCode && !discountApplied) {
         timer = setTimeout(() => {
           setIsDiscountPopupOpen(true);
-        }, 900);
+        }, 1000);
       }
     } catch {
       // Fallback
@@ -59,7 +57,7 @@ export const RentalProvider = ({ children }) => {
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [discountApplied]);
 
   // Apply promo code with case-insensitivity and single-discount enforcement
   const applyPromoCode = useCallback(
@@ -92,11 +90,6 @@ export const RentalProvider = ({ children }) => {
   }, []);
 
   const closeDiscountPopup = useCallback(() => {
-    try {
-      sessionStorage.setItem('promo_popup_dismissed', 'true');
-    } catch {
-      // Ignore
-    }
     setIsDiscountPopupOpen(false);
   }, []);
 
