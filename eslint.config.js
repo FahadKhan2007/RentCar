@@ -19,12 +19,11 @@ export default defineConfig([
     },
   },
   {
-    files: ['server/**/*.{js,jsx}', 'api/**/*.{js,jsx}', 'vite.config.js', 'eslint.config.js'],
+    files: ['vite.config.js', 'eslint.config.js'],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.browser,
       },
       parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
     },

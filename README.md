@@ -1,6 +1,6 @@
 # 🚗 CARRENT - Premium Car Rental Platform
 
-A modern, high-performance, and fully responsive Car Rental web application built with **React 19**, **Vite**, **Tailwind CSS**, and **React Router v7**. 
+A modern, high-performance, and fully responsive Car Rental web application built with **React 19**, **Vite**, **Tailwind CSS**, and **React Router v7**.
 
 Featuring a sleek dark and crimson red automotive theme, real-time rental price calculations, an automated 10% promotional discount system with `localStorage` persistence, interactive date and time validation, and full mobile responsiveness.
 
@@ -9,26 +9,26 @@ Featuring a sleek dark and crimson red automotive theme, real-time rental price 
 ## 🌟 Key Features
 
 - **⚡ Fast & Modern Architecture:** Built on Vite 8 and React 19 for instantaneous hot-module replacement and ultra-fast production builds.
-- **📱 Fully Responsive Design:** Handcrafted for desktop, tablet, and mobile with a responsive navigation drawer, flexible grid layouts, and touch-friendly tap targets.
-- **🏷️ Shared 10% Discount System:** 
-  - Integrated via React Context and synchronized with browser `localStorage`.
-  - Welcome coupon modal for first-time visitors with promo code (`Niazi804`).
-  - Automatically updates vehicle pricing across the fleet, cards, and live booking summary.
-  - Promo code input with instant validation and discount deduction.
+- **📱 Fully Responsive Design:** Handcrafted for desktop, tablet, and mobile (tested down to 320px and 390px viewport widths) with a responsive navigation drawer, flexible grid layouts, and touch-friendly tap targets.
+- **🏷️ Honest & Direct 10% Discount System:** 
+  - Welcome coupon modal for visitors with promo code **`Niazi804`**.
+  - One-click **Copy Code** button with immediate clipboard feedback and confirmation.
+  - One-click **Apply Code & Start Booking** button that saves the discount to `localStorage` and takes the user directly to the booking portal.
+  - Automatically recalculates vehicle pricing across fleet cards and live booking summary with single-discount enforcement.
 - **🚘 "Rent Now" Smart Car Pre-Selection:**
   - Clicking "Rent Now" on any vehicle card automatically navigates to the booking portal with that exact car pre-selected.
 - **📅 Dynamic Date Validation & Price Calculator:**
-  - Date validation prevents past pickup dates and ensures return date/time is after pickup.
-  - Automatically calculates total rental days, subtotal, 10% promo savings, and final estimated total in real time.
+  - Robust local date and time validation preventing past bookings and requiring a minimum rental duration of 1 hour.
+  - Partial rental days are charged as full days (e.g. 25 hours = 2 billable days).
+  - Real-time calculation of billable rental days, subtotal, 10% promo savings, and final estimated total.
 - **💾 Persistent Bookings & Contact System:**
-  - Saves all booking submissions with unique reference IDs (`CR-XXXX-XXXX`) to `localStorage`.
-  - Built-in "My Saved Bookings" manager allowing users to review and cancel their bookings.
-  - Instant confirmation modal with full receipt breakdown.
-  - Fully functional contact form with input validation, submission status, and storage.
+  - Saves all booking submissions with unique reference IDs (`CR-XXXX-XXXX`) to `localStorage` using safe `Array.isArray()` parser guards.
+  - Built-in "My Saved Bookings" modal allowing users to review and cancel active reservations.
+  - Fully functional contact form with input validation and submission feedback.
 - **🚀 Production-Ready & Vercel Optimized:**
-  - Custom `vercel.json` rewrite configuration preventing 404 errors on direct React Router page visits and reloads.
-  - Cleaned and audited codebase with **0 ESLint errors**.
-  - Optimized image assets (over 80% file size reduction) for top Lighthouse and Core Web Vitals performance.
+  - Clean client-side Single Page Application (SPA) with custom `vercel.json` rewrite configuration preventing 404 errors on deep routes and direct page reloads.
+  - Zero external backend dependencies or exposed endpoints.
+  - Cleaned and audited codebase with **0 ESLint errors** and **61 automated tests passing**.
 
 ---
 
@@ -36,10 +36,11 @@ Featuring a sleek dark and crimson red automotive theme, real-time rental price 
 
 - **Frontend Framework:** React 19 (`react`, `react-dom`)
 - **Routing:** React Router DOM v7 (`react-router-dom`)
-- **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`)
+- **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`, `tailwindcss`)
 - **Icons:** React Icons (`react-icons/fa`)
 - **Build Tool:** Vite 8
-- **Code Quality:** ESLint with React Hooks and React Refresh rules
+- **Testing:** Vitest 5 (`vitest`)
+- **Code Quality:** ESLint 10 with React Hooks and React Refresh rules
 
 ---
 
@@ -62,23 +63,37 @@ RentCar/
 │   │   └── cars.png
 │   ├── component/          # UI Components
 │   │   ├── Cars.jsx        # Car cards with dynamic discount pricing
-│   │   ├── DiscountPopUp.jsx # Interactive 10% discount modal
+│   │   ├── DiscountPopUp.jsx # Honest 10% discount promo modal with Copy Code
+│   │   ├── FloatingDiscountBtn.jsx # Floating quick-access coupon trigger
 │   │   ├── Footer.jsx      # Social links and footer navigation
 │   │   ├── Hero.jsx        # Hero banner with call-to-action
 │   │   └── Navbar.jsx      # Responsive header with mobile drawer
 │   ├── context/            # Shared State Management
-│   │   ├── RentalContext.jsx
+│   │   ├── RentalContext.jsx # Provider with localStorage synchronization
 │   │   ├── RentalContextInstance.js
-│   │   └── useRental.js    # Custom hook for shared state
+│   │   └── useRental.js    # Custom hook for shared rental state
 │   ├── data/               # Centralized data sources
 │   │   ├── carsData.js     # Single source of truth for fleet & rates
-│   │   └── constants.js    # Global promo codes and constants
+│   │   └── constants.js    # Global promo code and app constants
 │   ├── pages/              # Routed pages
 │   │   ├── About.jsx       # About company, stats, & fleet info
 │   │   ├── Booking.jsx     # Booking form, date validator, & price calculator
 │   │   ├── Contact.jsx     # Contact form & location info
 │   │   ├── Home.jsx        # Landing page
 │   │   └── Services.jsx    # Fleet offerings & perks
+│   ├── utils/              # Pure business logic & automated tests
+│   │   ├── __tests__/      # Vitest test suite (61 unit tests)
+│   │   │   ├── dateValidation.test.js
+│   │   │   ├── discountCalculations.test.js
+│   │   │   ├── discountPopupLogic.test.js
+│   │   │   ├── promoCode.test.js
+│   │   │   ├── rentalDays.test.js
+│   │   │   ├── rentalPrice.test.js
+│   │   │   └── storage.test.js
+│   │   ├── bookingCalculations.js
+│   │   ├── dateValidation.js
+│   │   ├── promoCode.js
+│   │   └── storage.js
 │   ├── App.jsx             # App layout, router & scroll restoration
 │   ├── index.css           # Global stylesheet & Tailwind imports
 │   └── main.jsx            # Application entry point
@@ -100,7 +115,7 @@ RentCar/
 # Clone the repository
 git clone https://github.com/FahadKhan2007/RentCar.git
 
-# Navigate to the project folder
+# Navigate to the project directory
 cd RentCar/RentCar
 
 # Install project dependencies
@@ -108,19 +123,14 @@ npm install
 ```
 
 ### 3. Development Server
-Start the local development server (includes the built-in email API middleware):
+Start the local Vite development server:
 ```bash
 npm run dev
 ```
 Open your browser at `http://localhost:5173`.
 
-Alternatively, to run the standalone Express backend server:
-```bash
-npm run server
-```
-
 ### 4. Production Build
-Build the optimized production bundles:
+Compile and bundle the application for production:
 ```bash
 npm run build
 ```
@@ -131,7 +141,7 @@ npm run preview
 ```
 
 ### 5. Automated Tests
-Run Vitest automated test suite (59 unit and integration tests):
+Run the Vitest automated test suite (61 tests covering date validation, rental pricing, discount calculations, promo code logic, and safe storage):
 ```bash
 npm test
 ```
@@ -144,54 +154,31 @@ npm run lint
 
 ---
 
-## 📧 Email & SMTP Configuration
+## 🏷️ Promo Code & Discount Functionality
 
-The promo code delivery system uses **Nodemailer** with secure backend credentials stored in `.env`.
-
-### Environment Variables Setup:
-Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-
-Set your SMTP credentials in `.env`:
-```env
-PORT=5000
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-16-character-app-password
-SMTP_FROM="CARRENT Official" <no-reply@carrent.com>
-PROMO_CODE=Niazi804
-DISCOUNT_PERCENT=10
-```
-
-> [!NOTE]
-> For **Gmail**: Enable 2-Step Verification in your Google Account and generate an **App Password** (16 characters) under Security -> App Passwords. Use this App Password as `SMTP_PASS`.
-
----
-
-## 🏷️ Discount & Promo System
-
-- Promo code **`Niazi804`** unlocks an instant 10% discount across the platform.
-- Validated case-insensitively on the booking page.
-- Single discount enforcement prevents duplicate stacking.
-- Active discount is reflected immediately on rental price summaries and fleet cards.
+- **Valid Code:** **`Niazi804`**
+- **Discount:** **10% OFF** calculated on the rental subtotal.
+- **Case-Insensitive:** Accepts `Niazi804`, `niazi804`, `NIAZI804`, and trims leading/trailing whitespace.
+- **Single Discount Guarantee:** Prevents users from stacking multiple promotional discounts on a single booking.
+- **Instant Persistence:** Applying the code automatically saves it to browser `localStorage` and keeps it in sync across all pages, vehicle cards, and the booking summary.
+- **Honest User Experience:** The discount popup directly displays the promo code with a one-click copy button and an "Apply Code & Start Booking" shortcut. No emails or fake registration forms required.
 
 ---
 
 ## ⏱️ Rental Pricing Rules
 
-- **Partial Days:** Partial rental days are charged as full days (e.g. 25 hours = 2 billable days).
-- **Minimum Rental Duration:** Minimum booking duration is 1 hour.
-- **Local Date & Time Validation:** Prevents past bookings and ensures return is after pickup in user's local timezone.
+- **Partial Days:** Partial rental days are charged as full days (e.g., 25 hours = 2 billable days). The booking summary clearly notes: *"Partial rental days are charged as full days."*
+- **Minimum Rental Duration:** Minimum booking duration is at least 1 hour.
+- **Local Date & Time Validation:** Uses the user's local device date and time (`getFullYear()`, `getMonth()`, `getDate()`) to prevent past bookings and ensure return times occur after pickup times.
+- **Transparent Summary:** Displays daily rate, billable days, subtotal, 10% promo discount deduction, and final total separately.
 
 ---
 
 ## 🌐 Deployment to Vercel
 
-This repository includes a pre-configured `vercel.json` file to ensure client-side routing works properly without 404 errors on deep routes:
+The application is deployed on Vercel as a client-side Single Page Application (SPA).
+
+A clean [`vercel.json`](vercel.json) rewrite rule handles all deep links and page reloads smoothly without 404 errors:
 
 ```json
 {
@@ -204,7 +191,14 @@ This repository includes a pre-configured `vercel.json` file to ensure client-si
 }
 ```
 
-Simply import your repository into [Vercel](https://vercel.com/) and click **Deploy**.
+### Deployment Steps:
+1. Push your changes to GitHub.
+2. In the [Vercel Dashboard](https://vercel.com/), select **Add New Project** and import the repository.
+3. Configure the Root Directory as `RentCar` (if inside a monorepo or subfolder).
+4. Framework preset: **Vite**.
+5. Build command: `npm run build`.
+6. Output directory: `dist`.
+7. Click **Deploy**.
 
 ---
 
